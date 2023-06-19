@@ -145,8 +145,8 @@ impl<'k> Raw<'k> {
 
     pub fn with_default_checked(
         self,
-        default: impl Into<String,
-    >) -> Result<Valid<'k>, Error> {
+        default: impl Into<String>
+    ) -> Result<Valid<'k>, Error> {
         match self.value {
             Some(osstring) => match osstring.into_string() {
                 Ok(string) => Ok(Valid {

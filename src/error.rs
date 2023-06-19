@@ -12,11 +12,11 @@ pub enum Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidUnicode(e) => e.fmt(f),
-            Self::Missing(e) => e.fmt(f),
-            Self::Parse(e) => e.fmt(f),
-        }
+        write!(
+            f,
+            "Environment Variable Error: {}",
+            self.source().unwrap(),
+        )
     }
 }
 
@@ -55,7 +55,11 @@ pub struct MissingError {
 
 impl Display for MissingError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        unimplemented!()
+        write!(
+            f,
+            "Key: '{}' is missing.",
+            self.key,
+        )
     }
 }
 
@@ -69,7 +73,12 @@ pub struct InvalidUnicodeError {
 
 impl Display for InvalidUnicodeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        unimplemented!()
+        write!(
+            f,
+            "Key: '{}', Value: '{}' is not valid unicode.",
+            self.key,
+            self.value,
+        )
     }
 }
 
@@ -86,8 +95,22 @@ pub struct ParseError {
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        unimplemented!()
+        write!(
+            f, 
+            "Key: '{}', Value: '{}', \
+            Failed to convert from '{}' to '{}'. \
+            Error: {}",
+            self.key,
+            self.value,
+            self.from,
+            self.to,
+            self.err,
+        )
     }
 }
 
-impl StdError for ParseError {}
+impl StdError for ParseError {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        Some(&*self.err)
+    }
+}

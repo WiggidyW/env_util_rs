@@ -1,17 +1,6 @@
-use crate::error::{
-    InvalidUnicodeError,
-    MissingError,
-    ParseError,
-    Error,
-};
+use crate::error::{Error, InvalidUnicodeError, MissingError, ParseError};
 
-use std::{
-    error::Error as StdError,
-    any::type_name,
-    ffi::OsString,
-    str::FromStr,
-    env::var_os,
-};
+use std::{any::type_name, env::var_os, error::Error as StdError, ffi::OsString, str::FromStr};
 
 pub fn get(key: &str) -> Raw {
     Raw {
@@ -43,7 +32,10 @@ impl<'k> Raw<'k> {
                     value: osstring.to_string_lossy().into_owned(),
                 }),
             },
-            None => Err(MissingError { key: self.key.to_string() }.into()),
+            None => Err(MissingError {
+                key: self.key.to_string(),
+            }
+            .into()),
         }
     }
 
@@ -58,10 +50,12 @@ impl<'k> Raw<'k> {
                     key: self.key.to_string(),
                     value: osstring.to_string_lossy().into_owned(),
                 }
-                    .into()
-                ),
+                .into()),
             },
-            None => Err(MissingError { key: self.key.to_string() }.into()),
+            None => Err(MissingError {
+                key: self.key.to_string(),
+            }
+            .into()),
         }
     }
 
@@ -92,17 +86,13 @@ impl<'k> Raw<'k> {
                     key: self.key.to_string(),
                     value: osstring.to_string_lossy().into_owned(),
                 }
-                    .into()
-                ),
+                .into()),
             },
             None => Ok(None),
         }
     }
 
-    pub fn with_default_unchecked(
-        self,
-        default: impl Into<String>,
-    ) -> Valid<'k> {
+    pub fn with_default_unchecked(self, default: impl Into<String>) -> Valid<'k> {
         match self.value {
             Some(osstring) => match osstring.into_string() {
                 Ok(string) => Valid {
@@ -121,10 +111,7 @@ impl<'k> Raw<'k> {
         }
     }
 
-    pub fn with_default_unchecked_sub_invalid(
-        self,
-        default: impl Into<String>,
-    ) -> Valid<'k> {
+    pub fn with_default_unchecked_sub_invalid(self, default: impl Into<String>) -> Valid<'k> {
         match self.value {
             Some(osstring) => match osstring.into_string() {
                 Ok(string) => Valid {
@@ -143,10 +130,7 @@ impl<'k> Raw<'k> {
         }
     }
 
-    pub fn with_default_checked(
-        self,
-        default: impl Into<String>
-    ) -> Result<Valid<'k>, Error> {
+    pub fn with_default_checked(self, default: impl Into<String>) -> Result<Valid<'k>, Error> {
         match self.value {
             Some(osstring) => match osstring.into_string() {
                 Ok(string) => Ok(Valid {
@@ -157,8 +141,7 @@ impl<'k> Raw<'k> {
                     key: self.key.to_string(),
                     value: osstring.to_string_lossy().into_owned(),
                 }
-                    .into()
-                ),
+                .into()),
             },
             None => Ok(Valid {
                 key: self.key,
@@ -182,7 +165,7 @@ impl<'k> Valid<'k> {
     pub fn then_try_fromstr_into<T>(self) -> Result<Parsed<'k, T>, Error>
     where
         T: FromStr,
-        <T as FromStr>::Err: StdError + 'static,
+        <T as FromStr>::Err: StdError + Send + Sync + 'static,
     {
         match self.value.parse() {
             Ok(parsed) => Ok(Parsed {
@@ -197,8 +180,7 @@ impl<'k> Valid<'k> {
                 to: type_name::<T>(),
                 err: err.into(),
             }
-                .into()
-            ),
+            .into()),
         }
     }
 
@@ -216,7 +198,7 @@ impl<'k> Valid<'k> {
     pub fn then_try_string_into<T>(self) -> Result<Parsed<'k, T>, Error>
     where
         String: TryInto<T>,
-        <String as TryInto<T>>::Error: StdError + 'static,
+        <String as TryInto<T>>::Error: StdError + Send + Sync + 'static,
     {
         match self.value.clone().try_into() {
             Ok(parsed) => Ok(Parsed {
@@ -231,8 +213,7 @@ impl<'k> Valid<'k> {
                 to: type_name::<T>(),
                 err: err.into(),
             }
-                .into()
-            ),
+            .into()),
         }
     }
 
@@ -250,12 +231,9 @@ impl<'k> Valid<'k> {
     pub fn then_try_str_into<T>(self) -> Result<Parsed<'k, T>, Error>
     where
         for<'v> &'v str: TryInto<T>,
-        for<'v> <&'v str as TryInto<T>>::Error: StdError + 'static,
+        for<'v> <&'v str as TryInto<T>>::Error: StdError + Send + Sync + 'static,
     {
-        let parsed = self.value
-            .as_str()
-            .try_into()
-            .map_err(|e| Box::new(e) as Box<dyn StdError>);
+        let parsed = self.value.as_str().try_into().map_err(|e| e.into());
         match parsed {
             Ok(parsed) => Ok(Parsed {
                 inner: parsed,
@@ -269,8 +247,7 @@ impl<'k> Valid<'k> {
                 to: type_name::<T>(),
                 err: err,
             }
-                .into()
-            ),
+            .into()),
         }
     }
 
@@ -285,13 +262,10 @@ impl<'k> Valid<'k> {
         }
     }
 
-    pub fn then_try_fn_string_into<T, F, E>(
-        self,
-        f: F,
-    ) -> Result<Parsed<'k, T>, Error>
+    pub fn then_try_fn_string_into<T, F, E>(self, f: F) -> Result<Parsed<'k, T>, Error>
     where
         F: FnOnce(String) -> Result<T, E>,
-        E: StdError + 'static,
+        E: StdError + Send + Sync + 'static,
     {
         match f(self.value.clone()) {
             Ok(parsed) => Ok(Parsed {
@@ -306,8 +280,7 @@ impl<'k> Valid<'k> {
                 to: type_name::<T>(),
                 err: err.into(),
             }
-                .into()
-            ),
+            .into()),
         }
     }
 
@@ -322,13 +295,10 @@ impl<'k> Valid<'k> {
         }
     }
 
-    pub fn then_try_fn_str_into<T, F, E>(
-        self,
-        f: F,
-    ) -> Result<Parsed<'k, T>, Error>
+    pub fn then_try_fn_str_into<T, F, E>(self, f: F) -> Result<Parsed<'k, T>, Error>
     where
         F: for<'v> FnOnce(&'v str) -> Result<T, E>,
-        E: StdError + 'static,
+        E: StdError + Send + Sync + 'static,
     {
         match f(self.value.as_str()) {
             Ok(parsed) => Ok(Parsed {
@@ -343,8 +313,7 @@ impl<'k> Valid<'k> {
                 to: type_name::<T>(),
                 err: err.into(),
             }
-                .into()
-            ),
+            .into()),
         }
     }
 }
@@ -375,7 +344,7 @@ impl<'k, P> Parsed<'k, P> {
     pub fn then_try_into<T>(self) -> Result<Parsed<'k, T>, Error>
     where
         P: TryInto<T>,
-        <P as TryInto<T>>::Error: StdError + 'static,
+        <P as TryInto<T>>::Error: StdError + Send + Sync + 'static,
     {
         match self.inner.try_into() {
             Ok(parsed) => Ok(Parsed {
@@ -390,8 +359,7 @@ impl<'k, P> Parsed<'k, P> {
                 to: type_name::<T>(),
                 err: err.into(),
             }
-                .into()
-            ),
+            .into()),
         }
     }
 
@@ -406,13 +374,10 @@ impl<'k, P> Parsed<'k, P> {
         }
     }
 
-    pub fn then_try_fn_into<T, F, E>(
-        self,
-        f: F,
-    ) -> Result<Parsed<'k, T>, Error>
+    pub fn then_try_fn_into<T, F, E>(self, f: F) -> Result<Parsed<'k, T>, Error>
     where
         F: FnOnce(P) -> Result<T, E>,
-        E: StdError + 'static,
+        E: StdError + Send + Sync + 'static,
     {
         match f(self.inner) {
             Ok(parsed) => Ok(Parsed {
@@ -427,8 +392,7 @@ impl<'k, P> Parsed<'k, P> {
                 to: type_name::<T>(),
                 err: err.into(),
             }
-                .into()
-            ),
+            .into()),
         }
     }
 }

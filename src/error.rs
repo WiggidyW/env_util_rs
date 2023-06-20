@@ -1,7 +1,4 @@
-use std::{
-    error::Error as StdError,
-    fmt::Display,
-};
+use std::{error::Error as StdError, fmt::Display};
 
 #[derive(Debug)]
 pub enum Error {
@@ -12,11 +9,7 @@ pub enum Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Environment Variable Error: {}",
-            self.source().unwrap(),
-        )
+        write!(f, "Environment Variable Error: {}", self.source().unwrap(),)
     }
 }
 
@@ -55,11 +48,7 @@ pub struct MissingError {
 
 impl Display for MissingError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Key: '{}' is missing.",
-            self.key,
-        )
+        write!(f, "Key: '{}' is missing.", self.key,)
     }
 }
 
@@ -76,8 +65,7 @@ impl Display for InvalidUnicodeError {
         write!(
             f,
             "Key: '{}', Value: '{}' is not valid unicode.",
-            self.key,
-            self.value,
+            self.key, self.value,
         )
     }
 }
@@ -90,21 +78,17 @@ pub struct ParseError {
     pub value: String,
     pub from: &'static str,
     pub to: &'static str,
-    pub err: Box<dyn StdError>,
+    pub err: Box<dyn StdError + Send + Sync + 'static>,
 }
 
 impl Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
-            f, 
+            f,
             "Key: '{}', Value: '{}', \
             Failed to convert from '{}' to '{}'. \
             Error: {}",
-            self.key,
-            self.value,
-            self.from,
-            self.to,
-            self.err,
+            self.key, self.value, self.from, self.to, self.err,
         )
     }
 }
